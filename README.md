@@ -1,2 +1,2 @@
-# lua-resty-hyperscan2
+# lua-resty-hs
 hyperscan for openresty
