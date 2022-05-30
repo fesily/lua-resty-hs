@@ -1,4 +1,5 @@
 .PHONY:all, init, test install clean
+default: all
 ARCH := $(shell uname -m)
 OS := $(shell uname -s)
 ifeq ($(ARCH), aarch64)
@@ -15,17 +16,20 @@ ifeq ($(OS), Darwin)
 endif
 
 
-init: 
+init:
+ifeq (,$(wildcard hyperscan))
 	git clone $(hyperscan_git_repo)
+	cd hyperscan && cmake -G Ninja -DBUILD_STATIC_AND_SHARED=true
+endif
 
-build: 
-	cd hyperscan && cmake -DBUILD_STATIC_AND_SHARED=true && cmake --build .
+build: init
+	cd hyperscan && cmake --build .
 
 lib/libhs.$(EXT): build
 	cp hyperscan/lib/libhs.$(EXT) lib/libhs.$(EXT)
 
 all: lib/libhs.$(EXT)
-	
+
 test:
 	rebusted -p='.lua' -m="./lib/?.lua;./lib/?/?.lua;./lib/?/init.lua" --cpath='./lib/?.$(EXT)' t/
 

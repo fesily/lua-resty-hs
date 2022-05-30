@@ -63,9 +63,10 @@ hs.HS_MODE_SOM_HORIZON_LARGE = 16777216
 hs.HS_MODE_SOM_HORIZON_MEDIUM = 33554432
 hs.HS_MODE_SOM_HORIZON_SMALL = 67108864
 
-
+local scan_hit_id = nil
 local function default_match_event_handler(id, from, to, flags, context)
-    return 0;
+    scan_hit_id = id
+    return hs.HS_SCAN_TERMINATED;
 end
 
 ---@type ffi.cb*
@@ -77,7 +78,11 @@ local function hs_scan(self, data, onEvent, scratch)
         match_event_handler:set(onEvent)
     end
     scratch = scratch or self.scratch
-    return runtime_hs_scan(self.handle, data, scratch, match_event_handler)
+    local ret = runtime_hs_scan(self.handle, data, scratch, match_event_handler)
+    if ret == hs.HS_SUCCESS or ret == hs.HS_SCAN_TERMINATED then
+        return true, scan_hit_id
+    end
+    return false
 end
 
 local mt_new = { __index = {
