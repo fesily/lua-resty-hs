@@ -127,6 +127,11 @@ function hs.init_scratch(db, scratch)
     return runtime.hs_alloc_scratch(db.handle, scratch)
 end
 
+---@param cb Hyperscan.Event
+function hs.set_match_event_function(cb)
+    match_event_handler:set(cb)
+end
+
 hs.default_match_event_handler = default_match_event_handler
 
 return hs

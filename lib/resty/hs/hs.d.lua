@@ -13,7 +13,7 @@ local hs = {}
 
 ---comment
 ---@param data string
----@param onEvent Hyperscan.Event
+---@param onEvent? Hyperscan.Event
 ---@param scratch? Hyperscan.scratch_t
 ---@return Hyperscan.error_t
 function hs:scan(data, onEvent, scratch)
