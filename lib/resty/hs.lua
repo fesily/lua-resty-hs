@@ -79,7 +79,7 @@ local function hs_scan(self, data, onEvent, scratch)
     end
     scratch = scratch or self.scratch
     local ret = runtime_hs_scan(self.handle, data, scratch, match_event_handler)
-    if ret == hs.HS_SUCCESS or ret == hs.HS_SCAN_TERMINATED then
+    if ret == hs.HS_SCAN_TERMINATED then
         return true, scan_hit_id
     end
     return false
