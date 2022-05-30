@@ -85,6 +85,9 @@ hs_error_t  hs_populate_platform(hs_platform_info_t *platform);
 local HS_SUCCESS = 0
 local compile_error = ffi_new("hs_compile_error_t*[1]")
 local hs_database_t = ffi.typeof("hs_database_t*[1]")
+local array_const_char_t = ffi.typeof('const  char*[?]')
+local array_unsigned_int_t = ffi.typeof('unsigned int[?]')
+local array_size_t = ffi.typeof("size_t [?]")
 local function do_compile_error()
     local err = compile_error[0]
     if err ~= nil then
@@ -129,18 +132,7 @@ function _M.hs_compile(expression, flags, mode)
     return db
 end
 
-function _M.hs_compile_multi()
-    error("not implemented")
-end
-
----comment
----@param expressions string[]
----@param flags integer[]
----@param ids integer[]
----@param elements integer
----@param mode integer
----@return any
-function _M.hs_compile_ext_multi(expressions, flags, ids, elements, mode)
+function _M.hs_compile_multi(expressions, flags, ids, mode, ext)
     if type(expressions) ~= "table" then
         return nil, "expressions must be a table"
     end
@@ -150,22 +142,21 @@ function _M.hs_compile_ext_multi(expressions, flags, ids, elements, mode)
     if type(ids) ~= "table" then
         return nil, "ids must be a table"
     end
-    if type(elements) ~= "number" then
-        return nil, "elements must be a number"
-    end
     if type(mode) ~= "number" then
         return nil, "mode must be a number"
     end
 
-    if elements ~= #expressions or elements ~= #flags or elements ~= #ids then
+    local elements = #expressions
+
+    if elements ~= #flags or elements ~= #ids then
         return nil, "elements must be equal to the length of expressions, flags, ids"
     end
 
     local db = ffi_new(hs_database_t)
 
-    local c_expressions = ffi_new('const  char*[?]', elements)
-    local c_ids         = ffi_new('unsigned int[?]', elements)
-    local c_flags       = ffi_new('unsigned int[?]', elements)
+    local c_expressions = ffi_new(array_const_char_t, elements)
+    local c_ids         = ffi_new(array_unsigned_int_t, elements)
+    local c_flags       = ffi_new(array_unsigned_int_t, elements)
 
     for i = 1, elements do
         c_ids[i - 1]         = ids[i]
@@ -173,7 +164,12 @@ function _M.hs_compile_ext_multi(expressions, flags, ids, elements, mode)
         c_expressions[i - 1] = expressions[i]
     end
 
-    local ret = libhs.hs_compile_ext_multi(c_expressions, c_flags, c_ids, nil, elements, mode, nil, db, compile_error)
+    local ret
+    if ext then
+        ret = libhs.hs_compile_ext_multi(c_expressions, c_flags, c_ids, ext, elements, mode, nil, db, compile_error)
+    else
+        ret = libhs.hs_compile_multi(c_expressions, c_flags, c_ids, elements, mode, nil, db, compile_error)
+    end
     if ret ~= HS_SUCCESS then
         return nil, do_compile_error()
     end
@@ -181,12 +177,54 @@ function _M.hs_compile_ext_multi(expressions, flags, ids, elements, mode)
     return db
 end
 
+function _M.hs_compile_ext_multi(expressions, flags, ids, mode)
+    error("not implemented")
+end
+
 function _M.hs_compile_lit()
     error("not implemented")
 end
 
-function _M.hs_compile_lit_multi()
-    error("not implemented")
+function _M.hs_compile_lit_multi(expressions, flags, ids, mode)
+    if type(expressions) ~= "table" then
+        return nil, "expressions must be a table"
+    end
+    if type(flags) ~= "table" then
+        return nil, "flags must be a table"
+    end
+    if type(ids) ~= "table" then
+        return nil, "ids must be a table"
+    end
+    if type(mode) ~= "number" then
+        return nil, "mode must be a number"
+    end
+
+    local elements = #expressions
+
+    if elements ~= #flags or elements ~= #ids then
+        return nil, "elements must be equal to the length of expressions, flags, ids"
+    end
+
+    local db = ffi_new(hs_database_t)
+
+    local c_expressions = ffi_new(array_const_char_t, elements)
+    local c_ids         = ffi_new(array_unsigned_int_t, elements)
+    local c_flags       = ffi_new(array_unsigned_int_t, elements)
+    local c_lens        = ffi_new(array_size_t, elements)
+
+    for i = 1, elements do
+        c_ids[i - 1]         = ids[i]
+        c_flags[i - 1]       = flags[i]
+        c_expressions[i - 1] = expressions[i]
+        c_lens[i - 1]        = #expressions[i]
+    end
+
+    local ret = libhs.hs_compile_lit_multi(c_expressions, c_flags, c_ids, c_lens, elements, mode, nil, db, compile_error)
+    if ret ~= HS_SUCCESS then
+        return nil, do_compile_error()
+    end
+    ffi_gc(db, hs_free_database)
+    return db
 end
 
 return _M

@@ -27,7 +27,7 @@ describe("compile", function()
     describe("test multi", function()
         local db, scratch, err
         it("success", function()
-            db, err = compile.hs_compile_ext_multi({ [[[\da-z]+]], [[[_a-z]+]] }, { hs.HS_FLAG_SINGLEMATCH, hs.HS_FLAG_SINGLEMATCH }, { 1, 2 }, 2, hs.HS_MODE_BLOCK)
+            db, err = compile.hs_compile_multi({ [[[\da-z]+]], [[[_a-z]+]] }, { hs.HS_FLAG_SINGLEMATCH, hs.HS_FLAG_SINGLEMATCH }, { 1, 2 }, hs.HS_MODE_BLOCK)
             assert.not_nil(db)
             assert.is_nil(err)
         end)
@@ -47,6 +47,28 @@ describe("compile", function()
             assert.equal(ret, hs.HS_SUCCESS)
             assert.equal(count, 2)
         end)
+    end)
+    describe("test multi", function()
+        local db, scratch, err
+        it("success", function()
+            db, err = compile.hs_compile_lit_multi({ "asd","123" }, { hs.HS_FLAG_SINGLEMATCH,hs.HS_FLAG_SINGLEMATCH }, { 1, 1 }, hs.HS_MODE_BLOCK)
+            assert.not_nil(db)
+            assert.is_nil(err)
+        end)
+        it("error param", function()
 
+        end)
+        it("scan", function()
+            scratch, err = runtime.hs_alloc_scratch(db)
+            assert.not_nil(scratch, err)
+
+            local count = 0;
+            local ret = runtime.hs_scan(db, "123,asd", scratch, function(id)
+                count = count + 1
+                return hs.HS_SUCCESS
+            end)
+            assert.equal(ret, hs.HS_SUCCESS)
+            assert.equal(count, 1)
+        end)
     end)
 end)

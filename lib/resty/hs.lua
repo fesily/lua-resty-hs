@@ -88,33 +88,45 @@ end
 local mt_new = { __index = {
     scan = hs_scan,
 } }
+
 ---@param mode Hyperscan.mode
 ---@param expression string|string[]
 ---@param flag integer|integer[]
 ---@param id? integer|integer[]
+---@param pure_literal? boolean
 ---@return Hyperscan,string
-function hs.new(mode, expression, flag, id)
+function hs.new(mode, expression, flag, id, pure_literal)
     assert(mode == hs.HS_MODE_BLOCK)
+    local db, err
     if type(expression) == "string" then
-        local db, err = compile.hs_compile(expression, flag, mode)
-        if not db then return nil, err end
-
-        return setmetatable({ handle = db }, mt_new)
+        if pure_literal then
+            db, err = compile.hs_compile(expression, flag, mode)
+        else
+            db, err = compile.hs_compile(expression, flag, mode)
+        end
     elseif type(expression) == "table" then
         assert(id ~= nil)
-        local db, err = compile.hs_compile_ext_multi(expression, flag, id, #expression, mode)
-        if not db then return nil, err end
-
-        return setmetatable({ handle = db }, mt_new)
+        if pure_literal then
+            db, err = compile.hs_compile_lit_multi(expression, flag, id, mode)
+        else
+            db, err = compile.hs_compile_multi(expression, flag, id, mode)
+        end
     else
         return nil, "expression must be a table or string"
     end
+    if not db then return nil, err end
+
+    return setmetatable({ handle = db }, mt_new)
 end
 
+---@param mode Hyperscan.mode
+---@param expression string|string[]
+---@param flag integer|integer[]
 ---@param id? integer|integer[]
----@return Hyperscan
-function hs.simple_new(mode, expression, flag, id)
-    local db, err = hs.new(mode, expression, flag, id)
+---@param pure_literal? boolean
+---@return Hyperscan,string
+function hs.simple_new(mode, expression, flag, id, pure_literal)
+    local db, err = hs.new(mode, expression, flag, id, pure_literal)
     if not db then return nil, err end
     local scratch, err = runtime.hs_alloc_scratch(db.handle, db.scratch)
     if not scratch then return nil, err end

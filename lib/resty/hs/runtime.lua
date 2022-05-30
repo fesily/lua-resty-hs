@@ -70,8 +70,9 @@ local HS_SUCCESS = 0
 
 
 ---@param onEvent Hyperscan.Event
-function _M.hs_scan(db, data, scratch, onEvent)
-    return libhs.hs_scan(db[0], data, #data, 0, scratch[0], onEvent, nil)
+---@param context? any
+function _M.hs_scan(db, data, scratch, onEvent, context)
+    return libhs.hs_scan(db[0], data, #data, 0, scratch[0], onEvent, context)
 end
 
 function _M.hs_scan_vector()
