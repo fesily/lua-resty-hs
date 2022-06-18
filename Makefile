@@ -19,11 +19,13 @@ endif
 init:
 ifeq (,$(wildcard hyperscan))
 	git clone $(hyperscan_git_repo)
-	cd hyperscan && cmake -G Ninja -DBUILD_STATIC_AND_SHARED=true
 endif
 
 build: init
-	cd hyperscan && cmake --build .
+ifeq (, $(wildcard CMakeFiles))
+	cd hyperscan && cmake -G Ninja -DBUILD_STATIC_AND_SHARED=true
+endif
+	cd hyperscan && cmake --build . -- -j$(shell nproc)
 
 lib/libhs.$(EXT): build
 	cp hyperscan/lib/libhs.$(EXT) lib/libhs.$(EXT)
