@@ -1,7 +1,5 @@
 local ffi = require "ffi"
 
-local _VERSION = require "resty.hs.base"._VERSION
-
 ffi.cdef([[
 struct hs_database;
 typedef struct hs_database hs_database_t;
@@ -56,6 +54,7 @@ do
         end
         return false
     end
+
     -- load library
     for k, _ in string.gmatch(package.cpath, "[^;]+") do
         local so_path = string.match(k, "(.*/)")
@@ -65,16 +64,19 @@ do
                 break
             end
             if jit.os == "OSX" then
-                if exists( so_path .. macos_name) then
-                    hs = ffi.load( so_path .. macos_name)
+                if exists(so_path .. macos_name) then
+                    hs = ffi.load(so_path .. macos_name)
                     break
                 end
             end
         end
     end
+    if not hs then
+        hs = ffi.load("libhs")
+    end
 
     if not hs then
-        error("load shared library libhs.so failed")
+        error("load shared library libhs failed")
     end
 
     if hs.hs_valid_platform() ~= HS_SUCCESS then

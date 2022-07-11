@@ -1,8 +1,6 @@
 local ffi = require "ffi"
 local libhs = require "resty.hs.libhs"
-local _M = {
-    _VERSION = require "resty.hs.base"._VERSION
-}
+local _M = {}
 
 local ffi_new = ffi.new
 local ffi_string = ffi.string
@@ -83,7 +81,7 @@ local function hs_free_scratch(scratch)
 end
 local hs_scratch_t = ffi.typeof("hs_scratch_t*[1]")
 ---@param scratch? Hyperscan.scratch_t
----@return Hyperscan.scratch_t
+---@return Hyperscan.scratch_t?,integer?
 function _M.hs_alloc_scratch(db, scratch)
     local need_attach_gc = not scratch
     if not scratch then
@@ -96,7 +94,7 @@ function _M.hs_alloc_scratch(db, scratch)
     if need_attach_gc then
         ffi_gc(scratch, hs_free_scratch)
     end
-    return scratch
+    return scratch,nil
 end
 
 return _M

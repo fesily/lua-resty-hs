@@ -1,9 +1,7 @@
 local ffi = require "ffi"
 local libhs = require "resty.hs.libhs"
 
-local _M = {
-    _VERSION = require "resty.hs.base"._VERSION
-}
+local _M = {}
 
 local ffi_new = ffi.new
 local ffi_string = ffi.string
@@ -101,6 +99,12 @@ end
 
 local function hs_free_database(db)
     libhs.hs_free_database(db[0])
+end
+
+function _M.new_database()
+    local db = ffi.new(hs_database_t)
+    ffi_gc(db, hs_free_database)
+    return db
 end
 
 ---comment

@@ -3,8 +3,12 @@ local libhs = require "resty.hs.libhs"
 local compile = require "resty.hs.compile"
 local runtime = require "resty.hs.runtime"
 local hs = {
-    _VERSION = require "resty.hs.base"._VERSION
+    _VERSION = 0.2
 }
+
+ffi.cdef[[
+    void free(void*);
+]]
 
 local ffi_new = ffi.new
 local ffi_string = ffi.string
@@ -63,8 +67,43 @@ hs.HS_MODE_SOM_HORIZON_LARGE = 16777216
 hs.HS_MODE_SOM_HORIZON_MEDIUM = 33554432
 hs.HS_MODE_SOM_HORIZON_SMALL = 67108864
 
-local match_ctx = nil
+local function error_to_string(err)
+    if err == hs.HS_INVALID then
+        return "Invalid"
+    elseif err == hs.HS_NOMEM then
+        return "NOMEM"
+    elseif err == hs.HS_SCAN_TERMINATED then
+        return "Scan terminated"
+    elseif err == hs.HS_COMPILER_ERROR then
+        return "Compiler error"
+    elseif err == hs.HS_DB_VERSION_ERROR then
+        return "Database version error"
+    elseif err == hs.HS_DB_PLATFORM_ERROR then
+        return "Database platform error"
+    elseif err == hs.HS_DB_MODE_ERROR then
+        return "Database mode error"
+    elseif err == hs.HS_BAD_ALLOC then
+        return "bad alloc"
+    elseif err == hs.HS_BAD_ALIGN then
+        return "bad alignment"
+    elseif err == hs.HS_SCRATCH_IN_USE then
+        return "scratch in use"
+    elseif err == hs.HS_ARCH_ERROR then
+        return "arch error"
+    elseif err == hs.HS_INSUFFICIENT_SPACE then
+        return "insufficient space"
+    elseif err == hs.HS_UNKNOWN_ERROR then
+        return "unknown error"
+    else
+        return ""
+    end
+end
+
+local match_ctx = {}
 local function default_match_event_handler(id, from, to, flags, context)
+    if match_ctx == nil then
+        return hs.HS_INVALID
+    end
     return match_ctx:handler(id)
 end
 
@@ -72,7 +111,7 @@ end
 local match_event_handler = ffi.cast("match_event_handler", default_match_event_handler)
 
 local runtime_hs_scan = runtime.hs_scan
-local function hs_scan(self, data, ctx ,scratch)
+local function hs_scan(self, data, ctx, scratch)
     if not ctx or not ctx.handler then return hs.HS_UNKNOWN_ERROR end
     match_ctx = ctx
     scratch = scratch or self.scratch
@@ -88,7 +127,7 @@ local mt_new = { __index = {
 ---@param flag integer|integer[]
 ---@param id? integer|integer[]
 ---@param pure_literal? boolean
----@return Hyperscan,string
+---@return Hyperscan?,string?
 function hs.new(mode, expression, flag, id, pure_literal)
     assert(mode == hs.HS_MODE_BLOCK)
     local db, err
@@ -118,24 +157,46 @@ end
 ---@param flag integer|integer[]
 ---@param id? integer|integer[]
 ---@param pure_literal? boolean
----@return Hyperscan,string
+---@return Hyperscan?,string?
 function hs.simple_new(mode, expression, flag, id, pure_literal)
     local db, err = hs.new(mode, expression, flag, id, pure_literal)
     if not db then return nil, err end
     local scratch, err = runtime.hs_alloc_scratch(db.handle, db.scratch)
-    if not scratch then return nil, err end
+    if not scratch then return nil, error_to_string(err) end
     db.scratch = scratch
     return db
 end
 
-function hs.new_from_memory()
-    error("not implemented")
+function hs.new_from_memory(data)
+    if not data then return nil, "data is nil" end
+    local db = compile.new_database()
+    local err = libhs.hs_deserialize_database(data, #data, db)
+    if err ~= hs.HS_SUCCESS then
+        return nil, error_to_string(err)
+    end
+    return setmetatable({ handle = db }, mt_new)
+end
+local function free_buf(buf)
+    ffi.C.free(buf[0])
+end
+
+function hs.database_to_memory(db)
+    local buf = ffi_new("char*[1]")
+    local size = ffi_new("size_t[1]")
+    local err = libhs.hs_serialize_database(db.handle[0], buf, size)
+    if err ~= hs.HS_SUCCESS then
+        return nil, error_to_string(err)
+    end
+    ffi_gc(buf, free_buf)
+    return ffi_string(buf[0], size[0])
 end
 
 ---@param scratch? Hyperscan.scratch_t
----@return Hyperscan.scratch_t
 function hs.init_scratch(db, scratch)
-    return runtime.hs_alloc_scratch(db.handle, scratch)
+    local scratch, err = runtime.hs_alloc_scratch(db.handle, scratch or db.scratch)
+    if not scratch then return nil, error_to_string(err) end
+    db.scratch = scratch
+    return scratch
 end
 
 ---@param cb Hyperscan.Event
