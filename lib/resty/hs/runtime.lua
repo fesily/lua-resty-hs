@@ -66,13 +66,13 @@ hs_error_t  hs_free_scratch(hs_scratch_t *scratch);
 
 local HS_SUCCESS = 0
 
-jit.off(libhs.hs_scan)
-
 ---@param onEvent Hyperscan.Event
 ---@param context? any
 function _M.hs_scan(db, data, scratch, onEvent, context)
     return libhs.hs_scan(db[0], data, #data, 0, scratch[0], onEvent, context)
 end
+
+jit.off(_M.hs_scan)
 
 function _M.hs_scan_vector()
     error("not implemented")
