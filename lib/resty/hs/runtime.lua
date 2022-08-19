@@ -66,6 +66,7 @@ hs_error_t  hs_free_scratch(hs_scratch_t *scratch);
 
 local HS_SUCCESS = 0
 
+jit.off(libhs.hs_scan)
 
 ---@param onEvent Hyperscan.Event
 ---@param context? any

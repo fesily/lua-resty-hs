@@ -6,7 +6,7 @@ local hs = {
     _VERSION = 0.2
 }
 
-ffi.cdef[[
+ffi.cdef [[
     void free(void*);
 ]]
 
@@ -101,10 +101,15 @@ end
 
 local match_ctx = {}
 local function default_match_event_handler(id, from, to, flags, context)
-    if match_ctx == nil then
+    if not match_ctx or not match_ctx.handler then
         return hs.HS_INVALID
     end
-    return match_ctx:handler(id)
+    local ok, res = pcall(match_ctx.handler, match_ctx, id)
+    if not ok then
+        ngx.log(ngx.ERR, res)
+        return hs.HS_UNKNOWN_ERROR
+    end
+    return res
 end
 
 ---@type ffi.cb*
@@ -176,6 +181,7 @@ function hs.new_from_memory(data)
     end
     return setmetatable({ handle = db }, mt_new)
 end
+
 local function free_buf(buf)
     ffi.C.free(buf[0])
 end
