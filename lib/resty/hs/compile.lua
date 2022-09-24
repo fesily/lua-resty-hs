@@ -7,7 +7,7 @@ local ffi_new = ffi.new
 local ffi_string = ffi.string
 local ffi_gc = ffi.gc
 local ffi_cast = ffi.cast
-
+local C = ffi.C
 ffi.cdef([[
 
 typedef struct hs_compile_error {
@@ -111,7 +111,7 @@ end
 ---@param expression string
 ---@param flags integer
 ---@param mode integer
----@return any,string
+---@return any,string?
 function _M.hs_compile(expression, flags, mode)
 
     if type(expression) ~= "string" then
@@ -229,6 +229,22 @@ function _M.hs_compile_lit_multi(expressions, flags, ids, mode)
     end
     ffi_gc(db, hs_free_database)
     return db
+end
+
+local hs_expression_info_t = ffi.typeof("hs_expr_info_t*[1]")
+function _M.hs_expression_info(expression, flags)
+    local hs_expression_info_ptr = ffi_new(hs_expression_info_t)
+    if libhs.hs_expression_info(expression, flags, hs_expression_info_ptr, compile_error) == HS_SUCCESS then
+        local res = {
+            min_width = hs_expression_info_ptr[0].min_width,
+            max_width = hs_expression_info_ptr[0].max_width,
+            unordered_matches = hs_expression_info_ptr[0].unordered_matches,
+            matches_at_eod = hs_expression_info_ptr[0].matches_at_eod,
+            matches_only_at_eod = hs_expression_info_ptr[0].matches_only_at_eod,
+        }
+        C.free(hs_expression_info_ptr[0])
+        return res
+    end
 end
 
 return _M
