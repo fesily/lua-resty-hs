@@ -15,6 +15,9 @@ ifeq ($(OS), Darwin)
 	EXT = dylib
 endif
 
+OPENRESTY_PREFIX ?= /usr/local/openresty
+INST_LUADIR      ?= $(OPENRESTY_PREFIX)/site/lualib
+INSTALL ?= install
 
 init:
 ifeq (,$(wildcard hyperscan))
@@ -36,8 +39,12 @@ test:
 	rebusted -p='.lua' -m="./lib/?.lua;./lib/?/?.lua;./lib/?/init.lua" --cpath='./lib/?.$(EXT)' t/
 
 install:
-	cp lib/resty/hs.lua /usr/local/openresty/lualib/resty/
-	cp lib/resty/hs/* /usr/local/openresty/lualib/resty/hs/
+	@echo ${INST_LUADIR}
+	@echo ${INST_LIBDIR}
+	$(INSTALL) -d $(INST_LUADIR)/resty/hs/
+	$(INSTALL) -m 644 lib/resty/hs.lua $(INST_LUADIR)/resty/
+	$(INSTALL) -m 644 lib/resty/hs/* $(INST_LUADIR)/resty/hs/
+	$(INSTALL) -m 644 lib/libhs.$(EXT) $(INST_LIBDIR)
 
 clean:
 	rm -rf lib/libhs.$(EXT)

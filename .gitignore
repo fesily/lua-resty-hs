@@ -45,3 +45,7 @@ servroot
 test
 .vscode
 hyperscan
+/luarocks
+/lua
+/lua_modules
+/.luarocks
