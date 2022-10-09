@@ -1,4 +1,4 @@
-.PHONY:all, init, test install clean no_build
+.PHONY:all, init, test install clean no-build install-no-build
 default: all
 ARCH := $(shell uname -m)
 OS := $(shell uname -s)
@@ -36,16 +36,18 @@ lib/libhs.$(EXT): build
 
 all: lib/libhs.$(EXT)
 
-no_build:
+no-build:
 
 test:
 	rebusted -p='.lua' -m="./lib/?.lua;./lib/?/?.lua;./lib/?/init.lua" --cpath='./lib/?.$(EXT)' t/
 
-install:
+install: install-no-build
+	$(INSTALL) -m 644 lib/libhs.$(EXT) $(INST_LIBDIR)
+
+install-no-build:
 	$(INSTALL) -d $(INST_LUADIR)/resty/hs/
 	$(INSTALL) -m 644 lib/resty/hs.lua $(INST_LUADIR)/resty/
 	$(INSTALL) -m 644 lib/resty/hs/* $(INST_LUADIR)/resty/hs/
-	$(INSTALL) -m 644 lib/libhs.$(EXT) $(INST_LIBDIR)
 
 clean:
 	rm -rf lib/libhs.$(EXT)
