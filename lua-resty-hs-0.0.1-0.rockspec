@@ -7,7 +7,10 @@ description = {
    summary = "hyperscan for openresty",
    detailed = "hyperscan for openresty",
    homepage = "https://github.com/fesily/lua-resty-hs",
-   license = "Apache-2.0"
+   license = "Apache-2.0",
+}
+dependencies = {
+   "lua >= 5.1"
 }
 build = {
    type = 'make',
