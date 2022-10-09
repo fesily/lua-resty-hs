@@ -1,4 +1,4 @@
-.PHONY:all, init, test install clean
+.PHONY:all, init, test install clean no_build
 default: all
 ARCH := $(shell uname -m)
 OS := $(shell uname -s)
@@ -35,6 +35,8 @@ lib/libhs.$(EXT): build
 	cp hyperscan/lib/libhs.$(EXT) lib/libhs.$(EXT)
 
 all: lib/libhs.$(EXT)
+
+no_build:
 
 test:
 	rebusted -p='.lua' -m="./lib/?.lua;./lib/?/?.lua;./lib/?/init.lua" --cpath='./lib/?.$(EXT)' t/
